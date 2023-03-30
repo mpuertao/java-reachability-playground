@@ -1,21 +1,18 @@
 name: Example workflow for Maven using Snyk and sonar cloud
 on: push
 jobs:
-  build: 
+  sonarcloud:
+    name: SonarCloud
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: set up JDK
-        uses: actions/setup-java@v2
         with:
-          java-version: '11'
-          distribution: 'temurin'
-          cache: maven
-      - name: Build with maven
-        run: mvn -B verify sonar:sonar -Dsonar.projectKey=java-reachability-playground -Dsonar.organization=mpuertao -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONAR_TOKEN
+          fetch-depth: 0  
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
         env:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-          SONAR_TOKEN: ${{secrets.SONAR_TOKEN}}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
   security:
     runs-on: ubuntu-latest
     continue-on-error: true
