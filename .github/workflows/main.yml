@@ -1,7 +1,8 @@
-name: Example workflow for Maven using Snyk and sonar cloud
+name: workflow using Snyk, sonar cloud and OWASP ZAP
 on: push
 jobs:
   build:
+    name: SAST and Code Quality with SONAR CLOUD
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -17,6 +18,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
   security:
+    name: SCA scan with SYNK
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
@@ -27,8 +30,8 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
   zap_scan:
     runs-on: ubuntu-latest
-    #needs: security
-    name: Run DAST scan on the web application
+    needs: security
+    name: DAST scan on the web application
     steps:
       - name: Checkout
         uses: actions/checkout@v2
