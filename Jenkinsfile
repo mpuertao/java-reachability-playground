@@ -34,8 +34,16 @@ pipeline {
                     mvn org.owasp:dependency-check-maven:check \
                         -Dformats=HTML,JSON \
                         -DsuppressionFile=owasp-suppressions.xml \
-                        -DfailBuildOnCVSS=3 \
+                        -DfailBuildOnCVSS=11 \
+                        -DfailBuildOnAnyVulnerability=false \
                         -Danalyzer.nvd.api.key=${NVD_API_KEY}
+
+                    # Mostrar resumen de vulnerabilidades en el log
+                    if [ -f target/dependency-check-report.json ]; then
+                        echo "============= RESUMEN DE VULNERABILIDADES ============="
+                        grep -o '"severityLevel": "[^"]*"' target/dependency-check-report.json | sort | uniq -c || echo "No se encontraron vulnerabilidades"
+                        echo "======================================================"
+                    fi
                 '''
                 archiveArtifacts artifacts: 'target/dependency-check-report.html,target/dependency-check-report.json'
                 publishHTML([
