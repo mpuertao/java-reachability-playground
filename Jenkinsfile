@@ -8,6 +8,10 @@ pipeline {
         SONAR_SCANNER_OPTS  = "-Xmx1024m"
     }
 
+    tools {
+        maven 'maven 3'
+    }
+
     stages {
         stage('Checkout') {
             steps {
