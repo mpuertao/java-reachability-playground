@@ -25,17 +25,24 @@ pipeline {
             }
         }
 
-        stage('Analisis Estático - SonarCloud (Deuda Técnica)') {
+        // stage('Analisis Estático - SonarCloud (Deuda Técnica)') {
+        //     steps {
+        //         withSonarQubeEnv('sonarcloud') {
+        //             sh '''
+        //                 mvn verify sonar:sonar -DskipTests \
+        //                   -Dsonar.organization=mpuertao \
+        //                   -Dsonar.projectKey=mpuertao_java-reachability-playground \
+        //                   -Dsonar.sources=src \
+        //                   -Dsonar.java.binaries=target/classes
+        //             '''
+        //         }
+        //     }
+        // }
+
+        stage('version SNYK') {
             steps {
-                withSonarQubeEnv('sonarcloud') {
-                    sh '''
-                        mvn verify sonar:sonar -DskipTests \
-                          -Dsonar.organization=mpuertao \
-                          -Dsonar.projectKey=mpuertao_java-reachability-playground \
-                          -Dsonar.sources=src \
-                          -Dsonar.java.binaries=target/classes
-                    '''
-                }
+            
+                    sh 'which snyk && snyk --version'
             }
         }
 
