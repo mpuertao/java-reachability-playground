@@ -27,7 +27,7 @@ pipeline {
 
         stage('Analisis Estático - SonarCloud (Deuda Técnica)') {
             steps {
-                withSonarQubeEnv('SonarQube') {
+                withSonarQubeEnv('sonarcloud') {
                     sh '''
                         mvn verify sonar:sonar -DskipTests \
                           -Dsonar.projectKey=mpuertao_java-reachability-playground \
