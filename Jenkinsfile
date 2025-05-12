@@ -6,7 +6,7 @@ pipeline {
         SNYK_TOKEN          = credentials('SNYK_TOKEN')
         PROJECT_REPO        = 'https://github.com/mpuertao/java-reachability-playground.git'
         SONAR_SCANNER_OPTS  = "-Xmx1024m"
-        SNYK_PATH          = '/Users/mauriciopuerta/.nvm/versions/node/v18.19.1/bin/snyk'  // Cambia esto si Snyk está en otra ubicación
+        SNYK_PATH          = '/opt/homebrew/bin/snyk'  // Cambia esto si Snyk está en otra ubicación
     }
 
     tools {
