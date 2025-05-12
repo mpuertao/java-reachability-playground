@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // Reemplaza con el ID de la credencial secreta creada en Jenkins
-        SNYK_TOKEN          = credentials('ae127fa7-55f5-4083-93e0-7516e5065f30')
+        SNYK_TOKEN          = credentials('snyk-token')
         PROJECT_REPO        = 'https://github.com/mpuertao/java-reachability-playground.git'
         SONAR_SCANNER_OPTS  = "-Xmx1024m"
     }
