@@ -42,10 +42,10 @@ pipeline {
 
        stage('Verificar Snyk') {
             steps {
-                sh '''
-                    export PATH=${env.SNYK_PATH}:$PATH
+                sh """
+                    export PATH=${SNYK_PATH}:$PATH
                     snyk --version
-                '''
+                """
             }
         }
 
