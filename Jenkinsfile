@@ -47,25 +47,25 @@ pipeline {
             }
         }
 
-        // stage('SCA - Dependencias vulnerables') {
-        //     steps {
-        //         // Autenticación con Snyk de forma segura sin interpolación de cadenas
-        //         sh '''
-        //             snyk auth ${SNYK_TOKEN}  // Utilizamos el token de forma segura aquí
-        //             snyk test --all-projects --json > snyk-sca-report.json
-        //         '''
-        //         archiveArtifacts artifacts: 'snyk-sca-report.json'
-        //     }
-        // }
+        stage('SCA - Dependencias vulnerables') {
+            steps {
+                // Autenticación con Snyk de forma segura sin interpolación de cadenas
+                sh '''
+                    snyk auth ${SNYK_TOKEN}  // Utilizamos el token de forma segura aquí
+                    snyk test --all-projects --json > snyk-sca-report.json
+                '''
+                archiveArtifacts artifacts: 'snyk-sca-report.json'
+            }
+        }
 
-        // stage('SAST - Código inseguro') {
-        //     steps {
-        //         sh '''
-        //             snyk code test --json > snyk-sast-report.json || true
-        //         '''
-        //         archiveArtifacts artifacts: 'snyk-sast-report.json'
-        //     }
-        // }
+        stage('SAST - Código inseguro') {
+            steps {
+                sh '''
+                    snyk code test --json > snyk-sast-report.json || true
+                '''
+                archiveArtifacts artifacts: 'snyk-sast-report.json'
+            }
+        }
 
         stage('Package Artifact') {
             steps {
@@ -76,13 +76,13 @@ pipeline {
 
         stage('Promote to DEV') {
             steps {
-                echo "HELLO WORLD from DEV environment"
+                echo "DESPLIEGUE EXITOSO from DEV environment"
             }
         }
 
         stage('Promote to QA') {
             steps {
-                echo "HELLO WORLD from QA environment"
+                echo "DESPLIEGUE EXITOSO from QA environment"
             }
         }
 
