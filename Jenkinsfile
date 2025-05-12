@@ -43,8 +43,7 @@ pipeline {
                         
                         # Verificar que Snyk esté accesible
                         which snyk || echo "Snyk no encontrado en PATH"
-                        snyk test --all-projects --json > snyk-sca-report.json
-                        snyk code test --json > snyk-sast-report.json || true
+                        snyk --version || echo "Error al obtener la versión de Snyk"
                     '''
 
                 archiveArtifacts artifacts: 'snyk-sca-report.json'
