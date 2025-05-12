@@ -34,12 +34,6 @@ pipeline {
             }
         }
 
-        // stage('Unit Tests') {
-        //     steps {
-        //         sh 'mvn clean '
-        //     }
-        // }
-
         stage('SCA - Software Composition Analysis') {
             steps {
                 sh 'snyk test --all-projects'
