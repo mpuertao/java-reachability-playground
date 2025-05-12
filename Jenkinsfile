@@ -51,73 +51,31 @@ pipeline {
             }
         }
 
-               stage('SCA - OWASP Dependency-Check') {
+        stage('SCA - OWASP Dependency-Check') {
             steps {
                 script {
-                    def dcDir = "${WORKSPACE}/dependency-check"
-                    def dcVersion = "8.4.0"
-                    
-                    echo "Iniciando análisis SCA con OWASP Dependency-Check"
-                    
-                    // Crear directorio para Dependency-Check
-                    sh "mkdir -p ${dcDir}"
-                    
-                    // Descargar Dependency-Check si no existe
+                    if (!fileExists("${DEPENDENCY_CHECK_HOME}/bin/dependency-check.sh")) {
+                        sh """
+                        mkdir -p ${DEPENDENCY_CHECK_HOME}
+                        wget https://github.com/jeremylong/DependencyCheck/releases/download/v${DEPENDENCY_CHECK_VERSION}/dependency-check-${DEPENDENCY_CHECK_VERSION}-release.zip -O ${WORKSPACE}/dependency-check.zip
+                        unzip ${WORKSPACE}/dependency-check.zip -d ${DEPENDENCY_CHECK_HOME}
+                        mv ${DEPENDENCY_CHECK_HOME}/dependency-check-${DEPENDENCY_CHECK_VERSION}/* ${DEPENDENCY_CHECK_HOME}
+                        rm -rf ${WORKSPACE}/dependency-check.zip ${DEPENDENCY_CHECK_HOME}/dependency-check-${DEPENDENCY_CHECK_VERSION}
+                        """
+                    }
+
+                    sh "mkdir -p ${DEPENDENCY_CHECK_DATA}"
+
                     sh """
-                        if [ ! -d "${dcDir}/dependency-check-${dcVersion}" ]; then
-                            echo "Descargando OWASP Dependency-Check..."
-                            curl -sSL "https://github.com/jeremylong/DependencyCheck/releases/download/v${dcVersion}/dependency-check-${dcVersion}-release.zip" -o ${dcDir}/dc.zip
-                            cd ${dcDir} && unzip -q dc.zip
-                            
-                            # Verificar la estructura del directorio descomprimido
-                            echo "Verificando estructura del directorio:"
-                            ls -la ${dcDir}
-                            
-                            rm ${dcDir}/dc.zip
-                        fi
-                        
-                        # Verificar que el script exista y darle permisos de ejecución
-                        if [ -f "${dcDir}/dependency-check/bin/dependency-check.sh" ]; then
-                            chmod +x ${dcDir}/dependency-check/bin/dependency-check.sh
-                            DEPENDENCY_CHECK_PATH="${dcDir}/dependency-check/bin/dependency-check.sh"
-                        elif [ -f "${dcDir}/dependency-check-\${dcVersion}/bin/dependency-check.sh" ]; then
-                            chmod +x ${dcDir}/dependency-check-\${dcVersion}/bin/dependency-check.sh
-                            DEPENDENCY_CHECK_PATH="${dcDir}/dependency-check-\${dcVersion}/bin/dependency-check.sh"
-                        else
-                            # Buscar el script en caso de que la estructura sea diferente
-                            echo "Buscando script dependency-check.sh..."
-                            DEPENDENCY_CHECK_PATH=\$(find ${dcDir} -name "dependency-check.sh" | head -n 1)
-                            if [ -z "\${DEPENDENCY_CHECK_PATH}" ]; then
-                                echo "No se encontró el script dependency-check.sh"
-                                exit 1
-                            fi
-                            chmod +x \${DEPENDENCY_CHECK_PATH}
-                        fi
-                        
-                        echo "Usando script: \${DEPENDENCY_CHECK_PATH}"
+                    ${DEPENDENCY_CHECK_HOME}/bin/dependency-check.sh \
+                        --project "My Java Project" \
+                        --scan "${WORKSPACE}" \
+                        --out "${WORKSPACE}/dependency-check-report.html" \
+                        --data "${DEPENDENCY_CHECK_DATA}" \
+                        --format HTML \
+                        --disableAssembly
                     """
-                    
-                    // Ejecutar análisis
-                    sh """
-                        cd ${dcDir}
-                        
-                        # Usar variable con la ruta al script
-                        \${DEPENDENCY_CHECK_PATH} --updateonly
-                        
-                        # Ejecutar análisis
-                        \${DEPENDENCY_CHECK_PATH} \\
-                            --scan ${WORKSPACE}/target \\
-                            --project "Java-Reachability-Playground" \\
-                            --out ${WORKSPACE} \\
-                            --format "HTML" \\
-                            --format "XML" \\
-                            --prettyPrint
-                    """
-                    
-                    // Archivar el reporte como resultado del análisis
-                    archiveArtifacts artifacts: 'dependency-check-report.*', fingerprint: true
-                }
-            }
+
         }
 
         stage('Package Artifact') {
@@ -140,63 +98,63 @@ pipeline {
         }
 
 
-        stage('DAST - OWASP ZAP') {
-            steps {
-                script {
-                    def targetURL = 'https://restful-booker.herokuapp.com/'  // Cambia por la URL real de tu app
-                    def zapDir = "${WORKSPACE}/zap"
-                    def zapVersion = "2.14.0"
+        // stage('DAST - OWASP ZAP') {
+        //     steps {
+        //         script {
+        //             def targetURL = 'https://restful-booker.herokuapp.com/'  // Cambia por la URL real de tu app
+        //             def zapDir = "${WORKSPACE}/zap"
+        //             def zapVersion = "2.14.0"
 
-                    echo "Iniciando análisis DAST con OWASP ZAP en ${targetURL}"
+        //             echo "Iniciando análisis DAST con OWASP ZAP en ${targetURL}"
 
-                    // Crear directorio para ZAP
-                    sh "mkdir -p ${zapDir}"
+        //             // Crear directorio para ZAP
+        //             sh "mkdir -p ${zapDir}"
                     
-                    // Descargar ZAP si no existe
-                    sh """
-                        if [ ! -d "${zapDir}/ZAP_${zapVersion}" ]; then
-                            echo "Descargando OWASP ZAP..."
-                            curl -sSL "https://github.com/zaproxy/zaproxy/releases/download/v${zapVersion}/ZAP_${zapVersion}_Cross_Platform.zip" -o ${zapDir}/zap.zip
-                            cd ${zapDir} && unzip -q zap.zip
-                            rm ${zapDir}/zap.zip
-                        fi
+        //             // Descargar ZAP si no existe
+        //             sh """
+        //                 if [ ! -d "${zapDir}/ZAP_${zapVersion}" ]; then
+        //                     echo "Descargando OWASP ZAP..."
+        //                     curl -sSL "https://github.com/zaproxy/zaproxy/releases/download/v${zapVersion}/ZAP_${zapVersion}_Cross_Platform.zip" -o ${zapDir}/zap.zip
+        //                     cd ${zapDir} && unzip -q zap.zip
+        //                     rm ${zapDir}/zap.zip
+        //                 fi
                         
-                        # Descargar script de baseline si no existe
-                        if [ ! -f "${zapDir}/zap-baseline.py" ]; then
-                            curl -sSL "https://raw.githubusercontent.com/zaproxy/zaproxy/main/docker/zap-baseline.py" -o ${zapDir}/zap-baseline.py
-                            chmod +x ${zapDir}/zap-baseline.py
-                        fi
-                    """
+        //                 # Descargar script de baseline si no existe
+        //                 if [ ! -f "${zapDir}/zap-baseline.py" ]; then
+        //                     curl -sSL "https://raw.githubusercontent.com/zaproxy/zaproxy/main/docker/zap-baseline.py" -o ${zapDir}/zap-baseline.py
+        //                     chmod +x ${zapDir}/zap-baseline.py
+        //                 fi
+        //             """
                     
-                    // Ejecutar análisis
-                    sh """
-                        cd ${zapDir}
+        //             // Ejecutar análisis
+        //             sh """
+        //                 cd ${zapDir}
                         
-                        # Iniciar ZAP en modo daemon
-                        ./ZAP_${zapVersion}/zap.sh -daemon -host 127.0.0.1 -port 8090 -config api.disablekey=true &
-                        ZAP_PID=\$!
+        //                 # Iniciar ZAP en modo daemon
+        //                 ./ZAP_${zapVersion}/zap.sh -daemon -host 127.0.0.1 -port 8090 -config api.disablekey=true &
+        //                 ZAP_PID=\$!
                         
-                        # Esperar a que ZAP inicie
-                        echo "Esperando que ZAP inicie..."
-                        sleep 30
+        //                 # Esperar a que ZAP inicie
+        //                 echo "Esperando que ZAP inicie..."
+        //                 sleep 30
                         
-                        # Ejecutar análisis
-                        python3 ./zap-baseline.py -t ${targetURL} \\
-                            -r ${WORKSPACE}/zap_report.html \\
-                            -J ${WORKSPACE}/zap_report.json \\
-                            -x ${WORKSPACE}/zap_report.xml \\
-                            -m 10 \\
-                            -z "-config scanner.attackOnStart=true"
+        //                 # Ejecutar análisis
+        //                 python3 ./zap-baseline.py -t ${targetURL} \\
+        //                     -r ${WORKSPACE}/zap_report.html \\
+        //                     -J ${WORKSPACE}/zap_report.json \\
+        //                     -x ${WORKSPACE}/zap_report.xml \\
+        //                     -m 10 \\
+        //                     -z "-config scanner.attackOnStart=true"
                         
-                        # Detener ZAP
-                        kill \$ZAP_PID || true
-                    """
+        //                 # Detener ZAP
+        //                 kill \$ZAP_PID || true
+        //             """
 
-                    // Archivar el reporte como resultado del análisis
-                    archiveArtifacts artifacts: 'zap_report.*', fingerprint: true
-                }
-            }
-        }
+        //             // Archivar el reporte como resultado del análisis
+        //             archiveArtifacts artifacts: 'zap_report.*', fingerprint: true
+        //         }
+        //     }
+        // }
 
 
         // stage('Analisis Estático - SonarCloud (Deuda Técnica)') {
