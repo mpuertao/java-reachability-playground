@@ -51,7 +51,7 @@ pipeline {
             }
         }
 
-        stage('SCA - OWASP Dependency-Check') {
+               stage('SCA - OWASP Dependency-Check') {
             steps {
                 script {
                     def dcDir = "${WORKSPACE}/dependency-check"
@@ -68,19 +68,44 @@ pipeline {
                             echo "Descargando OWASP Dependency-Check..."
                             curl -sSL "https://github.com/jeremylong/DependencyCheck/releases/download/v${dcVersion}/dependency-check-${dcVersion}-release.zip" -o ${dcDir}/dc.zip
                             cd ${dcDir} && unzip -q dc.zip
+                            
+                            # Verificar la estructura del directorio descomprimido
+                            echo "Verificando estructura del directorio:"
+                            ls -la ${dcDir}
+                            
                             rm ${dcDir}/dc.zip
                         fi
+                        
+                        # Verificar que el script exista y darle permisos de ejecución
+                        if [ -f "${dcDir}/dependency-check/bin/dependency-check.sh" ]; then
+                            chmod +x ${dcDir}/dependency-check/bin/dependency-check.sh
+                            DEPENDENCY_CHECK_PATH="${dcDir}/dependency-check/bin/dependency-check.sh"
+                        elif [ -f "${dcDir}/dependency-check-${dcVersion}/bin/dependency-check.sh" ]; then
+                            chmod +x ${dcDir}/dependency-check-${dcVersion}/bin/dependency-check.sh
+                            DEPENDENCY_CHECK_PATH="${dcDir}/dependency-check-${dcVersion}/bin/dependency-check.sh"
+                        else
+                            # Buscar el script en caso de que la estructura sea diferente
+                            echo "Buscando script dependency-check.sh..."
+                            DEPENDENCY_CHECK_PATH=$(find ${dcDir} -name "dependency-check.sh" | head -n 1)
+                            if [ -z "\${DEPENDENCY_CHECK_PATH}" ]; then
+                                echo "No se encontró el script dependency-check.sh"
+                                exit 1
+                            fi
+                            chmod +x \${DEPENDENCY_CHECK_PATH}
+                        fi
+                        
+                        echo "Usando script: \${DEPENDENCY_CHECK_PATH}"
                     """
                     
                     // Ejecutar análisis
                     sh """
                         cd ${dcDir}
                         
-                        # Actualizar base de datos de vulnerabilidades
-                        ./dependency-check-${dcVersion}/bin/dependency-check.sh --updateonly
+                        # Usar variable con la ruta al script
+                        \${DEPENDENCY_CHECK_PATH} --updateonly
                         
                         # Ejecutar análisis
-                        ./dependency-check-${dcVersion}/bin/dependency-check.sh \\
+                        \${DEPENDENCY_CHECK_PATH} \\
                             --scan ${WORKSPACE}/target \\
                             --project "Java-Reachability-Playground" \\
                             --out ${WORKSPACE} \\
