@@ -30,6 +30,7 @@ pipeline {
                 withSonarQubeEnv('sonarcloud') {
                     sh '''
                         mvn verify sonar:sonar -DskipTests \
+                          -Dsonar.organization=mpuertao \
                           -Dsonar.projectKey=mpuertao_java-reachability-playground \
                           -Dsonar.sources=src \
                           -Dsonar.java.binaries=target/classes
