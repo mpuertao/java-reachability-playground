@@ -43,26 +43,11 @@ pipeline {
                         
                         # Verificar que Snyk esté accesible
                         which snyk || echo "Snyk no encontrado en PATH"
+                        snyk test --all-projects --json > snyk-sca-report.json
+                        snyk code test --json > snyk-sast-report.json || true
                     '''
-            }
-        }
 
-        stage('SCA - Dependencias vulnerables') {
-            steps {
-                // Autenticación con Snyk de forma segura sin interpolación de cadenas
-                sh '''
-                    snyk auth ${SNYK_TOKEN}  // Utilizamos el token de forma segura aquí
-                    snyk test --all-projects --json > snyk-sca-report.json
-                '''
                 archiveArtifacts artifacts: 'snyk-sca-report.json'
-            }
-        }
-
-        stage('SAST - Código inseguro') {
-            steps {
-                sh '''
-                    snyk code test --json > snyk-sast-report.json || true
-                '''
                 archiveArtifacts artifacts: 'snyk-sast-report.json'
             }
         }
