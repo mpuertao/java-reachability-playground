@@ -27,7 +27,7 @@ pipeline {
         }
 
 
-       stage('Verificar Snyk') {
+       stage('SAST - Análisis Estático de Código con Snyk') {
             steps {
                  sh '''
                         echo "Configurando entorno..."
@@ -48,6 +48,50 @@ pipeline {
                         snyk code test --json > snyk-sast-report.json || true
                     '''
                 archiveArtifacts artifacts: 'snyk-sast-report.json'
+            }
+        }
+
+        stage('SCA - OWASP Dependency-Check') {
+            steps {
+                script {
+                    def dcDir = "${WORKSPACE}/dependency-check"
+                    def dcVersion = "8.4.0"
+                    
+                    echo "Iniciando análisis SCA con OWASP Dependency-Check"
+                    
+                    // Crear directorio para Dependency-Check
+                    sh "mkdir -p ${dcDir}"
+                    
+                    // Descargar Dependency-Check si no existe
+                    sh """
+                        if [ ! -d "${dcDir}/dependency-check-${dcVersion}" ]; then
+                            echo "Descargando OWASP Dependency-Check..."
+                            curl -sSL "https://github.com/jeremylong/DependencyCheck/releases/download/v${dcVersion}/dependency-check-${dcVersion}-release.zip" -o ${dcDir}/dc.zip
+                            cd ${dcDir} && unzip -q dc.zip
+                            rm ${dcDir}/dc.zip
+                        fi
+                    """
+                    
+                    // Ejecutar análisis
+                    sh """
+                        cd ${dcDir}
+                        
+                        # Actualizar base de datos de vulnerabilidades
+                        ./dependency-check-${dcVersion}/bin/dependency-check.sh --updateonly
+                        
+                        # Ejecutar análisis
+                        ./dependency-check-${dcVersion}/bin/dependency-check.sh \\
+                            --scan ${WORKSPACE}/target \\
+                            --project "Java-Reachability-Playground" \\
+                            --out ${WORKSPACE} \\
+                            --format "HTML" \\
+                            --format "XML" \\
+                            --prettyPrint
+                    """
+                    
+                    // Archivar el reporte como resultado del análisis
+                    archiveArtifacts artifacts: 'dependency-check-report.*', fingerprint: true
+                }
             }
         }
 
@@ -75,17 +119,52 @@ pipeline {
             steps {
                 script {
                     def targetURL = 'https://restful-booker.herokuapp.com/'  // Cambia por la URL real de tu app
+                    def zapDir = "${WORKSPACE}/zap"
+                    def zapVersion = "2.14.0"
 
                     echo "Iniciando análisis DAST con OWASP ZAP en ${targetURL}"
 
-                    // Si usas Docker (recomendado):
+                    // Crear directorio para ZAP
+                    sh "mkdir -p ${zapDir}"
+                    
+                    // Descargar ZAP si no existe
                     sh """
-                        docker run -t owasp/zap2docker-stable zap-baseline.py \
-                            -t ${targetURL} \
-                            -r zap_report.html \
-                            -x zap_report.xml \
-                            -J zap_report.json \
-                            -m 10
+                        if [ ! -d "${zapDir}/ZAP_${zapVersion}" ]; then
+                            echo "Descargando OWASP ZAP..."
+                            curl -sSL "https://github.com/zaproxy/zaproxy/releases/download/v${zapVersion}/ZAP_${zapVersion}_Cross_Platform.zip" -o ${zapDir}/zap.zip
+                            cd ${zapDir} && unzip -q zap.zip
+                            rm ${zapDir}/zap.zip
+                        fi
+                        
+                        # Descargar script de baseline si no existe
+                        if [ ! -f "${zapDir}/zap-baseline.py" ]; then
+                            curl -sSL "https://raw.githubusercontent.com/zaproxy/zaproxy/main/docker/zap-baseline.py" -o ${zapDir}/zap-baseline.py
+                            chmod +x ${zapDir}/zap-baseline.py
+                        fi
+                    """
+                    
+                    // Ejecutar análisis
+                    sh """
+                        cd ${zapDir}
+                        
+                        # Iniciar ZAP en modo daemon
+                        ./ZAP_${zapVersion}/zap.sh -daemon -host 127.0.0.1 -port 8090 -config api.disablekey=true &
+                        ZAP_PID=\$!
+                        
+                        # Esperar a que ZAP inicie
+                        echo "Esperando que ZAP inicie..."
+                        sleep 30
+                        
+                        # Ejecutar análisis
+                        python3 ./zap-baseline.py -t ${targetURL} \\
+                            -r ${WORKSPACE}/zap_report.html \\
+                            -J ${WORKSPACE}/zap_report.json \\
+                            -x ${WORKSPACE}/zap_report.xml \\
+                            -m 10 \\
+                            -z "-config scanner.attackOnStart=true"
+                        
+                        # Detener ZAP
+                        kill \$ZAP_PID || true
                     """
 
                     // Archivar el reporte como resultado del análisis
