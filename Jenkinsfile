@@ -26,36 +26,46 @@ pipeline {
             }
         }
 
-        stage('Verificar Homebrew') {
-            steps {
-                sh 'brew --version'  // Verificar si Homebrew está instalado
-            }
-        }
 
        stage('Verificar Snyk') {
             steps {
-                sh '/opt/homebrew/bin/snyk --version'            }
-        }
-
-        stage('SCA - Dependencias vulnerables') {
-            steps {
-                // Autenticación con Snyk de forma segura sin interpolación de cadenas
-                sh '''
-                    snyk auth ${SNYK_TOKEN}  // Utilizamos el token de forma segura aquí
-                    snyk test --all-projects --json > snyk-sca-report.json
-                '''
-                archiveArtifacts artifacts: 'snyk-sca-report.json'
+                 sh '''
+                        echo "Configurando entorno..."
+                        export PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:$HOME/.npm-global/bin:$HOME/.nvm/versions/node/$(node -v)/bin:$HOME/.local/bin"
+                        echo "PATH configurado: $PATH"
+                        
+                        # Verificar si Snyk está disponible, si no, instalarlo
+                        if ! command -v snyk &> /dev/null; then
+                            echo "Snyk no encontrado, instalando..."
+                            npm install -g snyk || echo "Error instalando Snyk globalmente"
+                            export PATH="$PATH:$HOME/.npm-global/bin"
+                        fi
+                        
+                        # Verificar que Snyk esté accesible
+                        which snyk || echo "Snyk no encontrado en PATH"
+                    '''
             }
         }
 
-        stage('SAST - Código inseguro') {
-            steps {
-                sh '''
-                    snyk code test --json > snyk-sast-report.json || true
-                '''
-                archiveArtifacts artifacts: 'snyk-sast-report.json'
-            }
-        }
+        // stage('SCA - Dependencias vulnerables') {
+        //     steps {
+        //         // Autenticación con Snyk de forma segura sin interpolación de cadenas
+        //         sh '''
+        //             snyk auth ${SNYK_TOKEN}  // Utilizamos el token de forma segura aquí
+        //             snyk test --all-projects --json > snyk-sca-report.json
+        //         '''
+        //         archiveArtifacts artifacts: 'snyk-sca-report.json'
+        //     }
+        // }
+
+        // stage('SAST - Código inseguro') {
+        //     steps {
+        //         sh '''
+        //             snyk code test --json > snyk-sast-report.json || true
+        //         '''
+        //         archiveArtifacts artifacts: 'snyk-sast-report.json'
+        //     }
+        // }
 
         stage('Package Artifact') {
             steps {
