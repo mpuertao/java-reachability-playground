@@ -44,6 +44,9 @@ pipeline {
                         # Verificar que Snyk esté accesible
                         which snyk || echo "Snyk no encontrado en PATH"
                         snyk --version || echo "Error al obtener la versión de Snyk"
+                        snyk auth ${SNYK_TOKEN} || echo "Error autenticando Snyk"
+                        snyk test --all-projects --json > snyk-sca-report.json
+                        snyk code test --json > snyk-sast-report.json || true
                     '''
 
                 archiveArtifacts artifacts: 'snyk-sca-report.json'
