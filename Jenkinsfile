@@ -39,24 +39,22 @@ pipeline {
         //     }
         // }
 
-        stage('version SNYK') {
-            steps {
-            
-                    sh 'which snyk && snyk --version'
-            }
-        }
+       
 
         stage('SCA - Software Composition Analysis') {
             steps {
-                sh 'snyk test --all-projects'
+                snykSecurity(
+                    snykInstallation: 'snyk@latest',
+                    snykTokenId: "${env.SNYK_TOKEN}",
+                )
             }
         }
 
-        stage('SAST - Static Application Security Testing') {
-            steps {
-                sh 'snyk code test'
-            }
-        }
+        // stage('SAST - Static Application Security Testing') {
+        //     steps {
+        //         sh 'snyk code test'
+        //     }
+        // }
 
         stage('Package Artifact') {
             steps {
@@ -77,14 +75,14 @@ pipeline {
             }
         }
 
-        stage('DAST - Dynamic Application Security Testing') {
-            steps {
-                // Simula un análisis DAST con Snyk (requiere app corriendo; aquí solo placeholder)
-                echo 'Simulando DAST con Snyk (requiere app desplegada).'
-                // En un entorno real podrías usar:
-                // sh 'snyk iac test'
-            }
-        }
+        // stage('DAST - Dynamic Application Security Testing') {
+        //     steps {
+        //         // Simula un análisis DAST con Snyk (requiere app corriendo; aquí solo placeholder)
+        //         echo 'Simulando DAST con Snyk (requiere app desplegada).'
+        //         // En un entorno real podrías usar:
+        //         // sh 'snyk iac test'
+        //     }
+        // }
 
         stage('DAST - OWASP ZAP') {
             steps {
