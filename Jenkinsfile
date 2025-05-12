@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // Reemplaza con el ID de la credencial secreta creada en Jenkins
-        SNYK_TOKEN          = credentials('snyk-token')
+        SNYK_TOKEN          = credentials('SNYK_TOKEN')
         PROJECT_REPO        = 'https://github.com/mpuertao/java-reachability-playground.git'
         SONAR_SCANNER_OPTS  = "-Xmx1024m"
     }
@@ -39,15 +39,29 @@ pipeline {
         //     }
         // }
 
-       
-
-        stage('SCA - Software Composition Analysis') {
+       stage('Verificar Snyk') {
             steps {
-                echo 'TESTING WITH SNYK'
-                snykSecurity(
-                    snykInstallation: 'snyk@latest',
-                    snykTokenId: "${env.SNYK_TOKEN}",
-                )
+                sh 'snyk --version'
+            }
+        }
+
+        stage('SCA - Dependencias vulnerables') {
+            steps {
+                // Autenticación con Snyk de forma segura sin interpolación de cadenas
+                sh '''
+                    snyk auth ${SNYK_TOKEN}  // Utilizamos el token de forma segura aquí
+                    snyk test --all-projects --json > snyk-sca-report.json
+                '''
+                archiveArtifacts artifacts: 'snyk-sca-report.json'
+            }
+        }
+
+        stage('SAST - Código inseguro') {
+            steps {
+                sh '''
+                    snyk code test --json > snyk-sast-report.json || true
+                '''
+                archiveArtifacts artifacts: 'snyk-sast-report.json'
             }
         }
 
