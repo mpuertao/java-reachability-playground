@@ -26,27 +26,15 @@ pipeline {
             }
         }
 
-        // stage('Analisis Estático - SonarCloud (Deuda Técnica)') {
-        //     steps {
-        //         withSonarQubeEnv('sonarcloud') {
-        //             sh '''
-        //                 mvn verify sonar:sonar -DskipTests \
-        //                   -Dsonar.organization=mpuertao \
-        //                   -Dsonar.projectKey=mpuertao_java-reachability-playground \
-        //                   -Dsonar.sources=src \
-        //                   -Dsonar.java.binaries=target/classes
-        //             '''
-        //         }
-        //     }
-        // }
+        stage('Verificar Homebrew') {
+            steps {
+                sh 'brew --version'  // Verificar si Homebrew está instalado
+            }
+        }
 
        stage('Verificar Snyk') {
             steps {
-                sh """
-                    export PATH=${SNYK_PATH}:$PATH
-                    snyk --version
-                """
-            }
+                sh '/opt/homebrew/bin/snyk --version'            }
         }
 
         stage('SCA - Dependencias vulnerables') {
@@ -111,6 +99,21 @@ pipeline {
                 }
             }
         }
+
+
+        // stage('Analisis Estático - SonarCloud (Deuda Técnica)') {
+        //     steps {
+        //         withSonarQubeEnv('sonarcloud') {
+        //             sh '''
+        //                 mvn verify sonar:sonar -DskipTests \
+        //                   -Dsonar.organization=mpuertao \
+        //                   -Dsonar.projectKey=mpuertao_java-reachability-playground \
+        //                   -Dsonar.sources=src \
+        //                   -Dsonar.java.binaries=target/classes
+        //             '''
+        //         }
+        //     }
+        // }
     }
 
     post {
