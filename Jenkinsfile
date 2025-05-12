@@ -6,7 +6,18 @@ pipeline {
         SNYK_TOKEN          = credentials('SNYK_TOKEN')
         PROJECT_REPO        = 'https://github.com/mpuertao/java-reachability-playground.git'
         SONAR_SCANNER_OPTS  = "-Xmx1024m"
-        SNYK_PATH          = '/opt/homebrew/bin/snyk'  // Cambia esto si Snyk está en otra ubicación
+        SNYK_PATH          = '/opt/homebrew/bin/snyk'  
+         // Configuración de OWASP Dependency Check
+        DEPENDENCY_CHECK_VERSION = '8.2.1'
+        DEPENDENCY_CHECK_HOME = "${WORKSPACE}/dependency-check"
+        DEPENDENCY_CHECK_DATA = "${WORKSPACE}/dependency-check-data"
+        
+        // Configuración de OWASP ZAP
+        ZAP_VERSION = '2.12.0'
+        ZAP_HOME = "${WORKSPACE}/zap"
+        TARGET_URL = 'https://restful-booker.herokuapp.com/' // Cambia esto por la URL de tu aplicación
+        ZAP_REPORT_FORMAT = 'html'
+        ZAP_REPORT_FILE = "${WORKSPACE}/zap-report.html"// Cambia esto si Snyk está en otra ubicación
     }
 
     tools {
@@ -68,7 +79,7 @@ pipeline {
 
                     sh """
                     ${DEPENDENCY_CHECK_HOME}/bin/dependency-check.sh \
-                        --project "My Java Project" \
+                        --project "java-reachability-playground" \
                         --scan "${WORKSPACE}" \
                         --out "${WORKSPACE}/dependency-check-report.html" \
                         --data "${DEPENDENCY_CHECK_DATA}" \
