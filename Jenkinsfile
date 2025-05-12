@@ -80,13 +80,13 @@ pipeline {
                         if [ -f "${dcDir}/dependency-check/bin/dependency-check.sh" ]; then
                             chmod +x ${dcDir}/dependency-check/bin/dependency-check.sh
                             DEPENDENCY_CHECK_PATH="${dcDir}/dependency-check/bin/dependency-check.sh"
-                        elif [ -f "${dcDir}/dependency-check-${dcVersion}/bin/dependency-check.sh" ]; then
-                            chmod +x ${dcDir}/dependency-check-${dcVersion}/bin/dependency-check.sh
-                            DEPENDENCY_CHECK_PATH="${dcDir}/dependency-check-${dcVersion}/bin/dependency-check.sh"
+                        elif [ -f "${dcDir}/dependency-check-\${dcVersion}/bin/dependency-check.sh" ]; then
+                            chmod +x ${dcDir}/dependency-check-\${dcVersion}/bin/dependency-check.sh
+                            DEPENDENCY_CHECK_PATH="${dcDir}/dependency-check-\${dcVersion}/bin/dependency-check.sh"
                         else
                             # Buscar el script en caso de que la estructura sea diferente
                             echo "Buscando script dependency-check.sh..."
-                            DEPENDENCY_CHECK_PATH=$(find ${dcDir} -name "dependency-check.sh" | head -n 1)
+                            DEPENDENCY_CHECK_PATH=\$(find ${dcDir} -name "dependency-check.sh" | head -n 1)
                             if [ -z "\${DEPENDENCY_CHECK_PATH}" ]; then
                                 echo "No se encontró el script dependency-check.sh"
                                 exit 1
