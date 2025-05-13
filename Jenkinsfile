@@ -1,8 +1,7 @@
-pipeline 
+pipeline {
     agent any
 
     environment {
-        // Reemplaza con el ID de la credencial secreta creada en Jenkins
         SNYK_TOKEN          = credentials('SNYK_TOKEN')
         NVD_API_KEY         = credentials('NVD_API_KEY')  
         PROJECT_REPO        = 'https://github.com/mpuertao/java-reachability-playground.git'
@@ -151,3 +150,4 @@ pipeline
             echo 'Hubo una falla en el pipeline. Revisa las etapas.'
         }
     }
+}
