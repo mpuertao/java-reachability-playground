@@ -92,7 +92,7 @@ pipeline {
 
                         mkdir -p snyk-reports
 
-                        snyk code test --json > ssnyk-reports/snyk-sast-report.json || true
+                        snyk code test --json > snyk-reports/snyk-sast-report.json || true
                         snyk code test --sarif > snyk-reports/snyk-code-report.sarif || true
 
                         cat snyk-reports/snyk-sast-report.json | snyk-to-html -o snyk-reports/snyk-sast-report.html || echo "No se pudo generar el reporte HTML"
@@ -140,10 +140,33 @@ pipeline {
                     # Descargar ZAP si no está disponible (versión específica compatible con macOS M1)
                     if [ ! -f zap.jar ]; then
                         echo "Descargando OWASP ZAP..."
-                        curl -L https://github.com/zaproxy/zaproxy/releases/download/v2.14.0/ZAP_2.14.0_Crossplatform.zip -o zap.zip
+                        curl -L https://github.com/zaproxy/zaproxy/releases/download/v2.14.0/ZAP_2.14.0_Crossplatform.zip -o zap.zip --retry 3 --retry-delay 5
                         unzip -q zap.zip
                         mv ZAP_2.14.0/* .
                         chmod +x zap.sh
+                    fi
+
+                    if [ -f zap.zip ] && [ $(stat -f%z zap.zip 2>/dev/null || stat -c%s zap.zip) -gt 1000000 ]; then
+                            echo "Archivo descargado correctamente. Descomprimiendo..."
+                            unzip -q zap.zip || {
+                                echo "Error al descomprimir. Intentando con 'jar xf'..."
+                                mkdir -p ZAP_extract
+                                cd ZAP_extract
+                                jar xf ../zap.zip
+                                cd ..
+                            }
+                    # Buscar el directorio ZAP extraído
+                            ZAP_DIR=$(find . -maxdepth 1 -type d -name "ZAP*" | head -1)
+                            if [ -n "$ZAP_DIR" ]; then
+                                echo "Moviendo archivos desde $ZAP_DIR"
+                                cp -R "$ZAP_DIR"/* .
+                                chmod +x zap.sh || echo "No se encontró zap.sh"
+                            else
+                                echo "ERROR: No se encontró el directorio ZAP extraído"
+                            fi
+                        else
+                            echo "ERROR: La descarga de ZAP falló o el archivo está incompleto"
+                        fi
                     fi
                     
                     # Ejecutar escaneo básico
