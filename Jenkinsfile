@@ -138,17 +138,44 @@ pipeline {
         stage('DAST - OWASP ZAP') {
             steps {
                 script {
-                    def targetUrl = 'https://demo.bankid.com/'
-
-                    zapActiveScan(
-                        target: targetUrl,
-                        alertThreshold: 'HIGH', // Optional: Fail build on MEDIUM or higher risk alerts
-                        reportFormat: 'HTML', // Optional: Specify the report format (HTML, XML, etc.)
-                        reportFile: 'zap_report.html' // Optional: Specify the report file name
-                    )
-                }
-            }
+        script {
+            def targetUrl = "${URL_WEB}"
+            
+            // Usando Docker para ejecutar ZAP (recomendado)
+            sh """
+                mkdir -p zap-reports
+                
+                # Ejecutar ZAP en modo daemon usando Docker
+                docker run -d --name zap-weekly -p 8090:8090 -e ZAP_PORT=8090 -i owasp/zap2docker-weekly zap.sh -daemon -port 8090 -host 0.0.0.0
+                
+                # Esperar a que ZAP se inicie completamente
+                sleep 30
+                
+                # Ejecutar escaneo activo contra la URL objetivo
+                docker exec zap-weekly zap-cli -p 8090 active-scan ${targetUrl}
+                
+                # Generar reporte
+                docker exec zap-weekly zap-cli -p 8090 report -o /zap/wrk/zap-report.html -f html
+                
+                # Copiar el reporte del contenedor a Jenkins
+                docker cp zap-weekly:/zap/wrk/zap-report.html zap-reports/
+                
+                # Limpiar contenedor
+                docker stop zap-weekly
+                docker rm zap-weekly
+            """
+            
+            archiveArtifacts artifacts: 'zap-reports/**'
+            publishHTML([
+                allowMissing: false,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: 'zap-reports',
+                reportFiles: 'zap-report.html',
+                reportName: 'OWASP ZAP Report'
+            ])
         }
+    }
 
         stage('Deploy to PDN') {
             steps {
