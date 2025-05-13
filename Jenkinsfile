@@ -142,16 +142,9 @@ pipeline {
 
                     zapActiveScan(
                         target: targetUrl,
-                        alertThreshold: 'HIG', // Optional: Fail build on MEDIUM or higher risk alerts
+                        alertThreshold: 'HIGH', // Optional: Fail build on MEDIUM or higher risk alerts
                         reportFormat: 'HTML', // Optional: Specify the report format (HTML, XML, etc.)
                         reportFile: 'zap_report.html' // Optional: Specify the report file name
-                    )
-
-                    // Optional: Passive Scan (usually runs continuously in the background)
-                    // You might want to explicitly trigger a report generation
-                    zapPassiveScanReport(
-                        reportFormat: 'HTML',
-                        reportFile: 'zap_passive_report.html'
                     )
                 }
             }
