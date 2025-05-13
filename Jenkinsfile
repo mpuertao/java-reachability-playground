@@ -180,7 +180,6 @@ pipeline {
                 $K6_PATH run script.js
                 '''
 
-                sh "k6 run script.js"
                  publishHTML([
                     allowMissing: false,
                     alwaysLinkToLastBuild: true,
