@@ -142,35 +142,35 @@ pipeline {
                     
                     def targetUrl = "${URL_WEB}"
                     
-                    sh """"
-                    # Asegúrate de que exista el directorio para los reportes
-                    mkdir -p zap-reports
-
-                    # Ruta completa a Docker en Mac
-                    DOCKER_PATH=/Applications/Docker.app/Contents/Resources/bin/docker
-
-                    # Si no existe en esta ruta, intenta con Homebrew
-                    if [ ! -f "\$DOCKER_PATH" ]; then
-                        DOCKER_PATH=/opt/homebrew/bin/docker
-                    fi
-
-                    # Si aún no existe, intenta con la ruta estándar
-                    if [ ! -f "\$DOCKER_PATH" ]; then
-                        DOCKER_PATH=/usr/local/bin/docker
-                    fi
-
-                    echo "Usando Docker desde: \$DOCKER_PATH"
-
-                    # Ejecuta ZAP con la ruta completa a Docker
-                    \$DOCKER_PATH run -d --name zap-weekly -p 8090:8090 -e ZAP_PORT=8090 -i owasp/zap2docker-weekly zap.sh -daemon -port 8090 -host 0.0.0.0
-
-                    sleep 30  # Dar tiempo a ZAP para iniciar
-
-                    \$DOCKER_PATH exec zap-weekly zap-cli -p 8090 active-scan ${targetUrl}
-                    \$DOCKER_PATH exec zap-weekly zap-cli -p 8090 report -o /zap/wrk/zap-report.html -f html
-                    \$DOCKER_PATH cp zap-weekly:/zap/wrk/zap-report.html zap-reports/
-                    \$DOCKER_PATH stop zap-weekly
-                    \$DOCKER_PATH rm zap-weekly
+                    sh """
+                        # Asegúrate de que exista el directorio para los reportes
+                        mkdir -p zap-reports
+    
+                        # Ruta completa a Docker en Mac
+                        DOCKER_PATH=/Applications/Docker.app/Contents/Resources/bin/docker
+    
+                        # Si no existe en esta ruta, intenta con Homebrew
+                        if [ ! -f "\$DOCKER_PATH" ]; then
+                            DOCKER_PATH=/opt/homebrew/bin/docker
+                        fi
+    
+                        # Si aún no existe, intenta con la ruta estándar
+                        if [ ! -f "\$DOCKER_PATH" ]; then
+                            DOCKER_PATH=/usr/local/bin/docker
+                        fi
+    
+                        echo "Usando Docker desde: \$DOCKER_PATH"
+    
+                        # Ejecuta ZAP con la ruta completa a Docker
+                        \$DOCKER_PATH run -d --name zap-weekly -p 8090:8090 -e ZAP_PORT=8090 -i owasp/zap2docker-weekly zap.sh -daemon -port 8090 -host 0.0.0.0
+    
+                        sleep 30  # Dar tiempo a ZAP para iniciar
+    
+                        \$DOCKER_PATH exec zap-weekly zap-cli -p 8090 active-scan ${targetUrl}
+                        \$DOCKER_PATH exec zap-weekly zap-cli -p 8090 report -o /zap/wrk/zap-report.html -f html
+                        \$DOCKER_PATH cp zap-weekly:/zap/wrk/zap-report.html zap-reports/
+                        \$DOCKER_PATH stop zap-weekly
+                        \$DOCKER_PATH rm zap-weekly
                     """
                     
                     archiveArtifacts artifacts: 'zap-reports/**'
