@@ -6,6 +6,7 @@ pipeline {
         SNYK_TOKEN          = credentials('SNYK_TOKEN')
         NVD_API_KEY         = credentials('NVD_API_KEY')  
         PROJECT_REPO        = 'https://github.com/mpuertao/java-reachability-playground.git'
+        URL_WEB             = 'https://demo.bankid.com/'    
         SONAR_SCANNER_OPTS  = "-Xmx1024m"
         SNYK_PATH           = '/opt/homebrew/bin/snyk'  
     }
@@ -24,6 +25,20 @@ pipeline {
         stage('Build') {
             steps {
                 sh 'mvn clean compile'
+            }
+        }
+
+        stage('Analisis Estático - SonarCloud (Deuda Técnica)') {
+            steps {
+                withSonarQubeEnv('sonarcloud') {
+                    sh '''
+                        mvn verify sonar:sonar -DskipTests \
+                          -Dsonar.organization=mpuertao \
+                          -Dsonar.projectKey=mpuertao_java-reachability-playground \
+                          -Dsonar.sources=src \
+                          -Dsonar.java.binaries=target/classes
+                    '''
+                }
             }
         }
 
@@ -65,24 +80,35 @@ pipeline {
                         export PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:$HOME/.npm-global/bin:$HOME/.nvm/versions/node/$(node -v)/bin:$HOME/.local/bin"
                         echo "PATH configurado: $PATH"
                         
-                        # Verificar si Snyk está disponible, si no, instalarlo
                         if ! command -v snyk &> /dev/null; then
                             echo "Snyk no encontrado, instalando..."
                             npm install -g snyk || echo "Error instalando Snyk globalmente"
                             export PATH="$PATH:$HOME/.npm-global/bin"
                         fi
                         
-                        # Verificar que Snyk esté accesible
                         which snyk || echo "Snyk no encontrado en PATH"
                         snyk --version || echo "Error al obtener la versión de Snyk"
                         snyk auth ${SNYK_TOKEN} || echo "Error autenticando Snyk"
-                        snyk code test --json > snyk-sast-report.json || true
+
+                        mkdir -p snyk-reports
+
+                        snyk code test --json > ssnyk-reports/snyk-sast-report.json || true
+                        snyk code test --sarif > snyk-reports/snyk-code-report.sarif || true
+
+                        cat snyk-reports/snyk-sast-report.json | snyk-to-html -o snyk-reports/snyk-sast-report.html || echo "No se pudo generar el reporte HTML"
+
+                        echo "============= RESUMEN DE VULNERABILIDADES SAST ============="
+                        if [ -f snyk-reports/snyk-code-report.json ]; then
+                            cat snyk-reports/snyk-code-report.json | grep -o '"severity": "[^"]*"' | sort | uniq -c || echo "No se encontraron vulnerabilidades"
+                        else
+                            echo "No se generó el reporte JSON"
+                        fi
+
+                        snyk monitor || echo "No se pudo enviar los resultados a Snyk Monitor"
                     '''
                 archiveArtifacts artifacts: 'snyk-sast-report.json'
             }
         }
-
-       
 
         stage('Package Artifact') {
             steps {
@@ -91,35 +117,68 @@ pipeline {
             }
         }
 
-        stage('Promote to DEV') {
+        stage('Deploy to DEV') {
             steps {
-                echo "DESPLIEGUE EXITOSO from DEV environment"
+                echo "DESPLIEGUE EXITOSO for DEV environment"
             }
         }
 
-        stage('Promote to QA') {
+        stage('Deploy to QA') {
             steps {
-                echo "DESPLIEGUE EXITOSO from QA environment"
+                echo "DESPLIEGUE EXITOSO for QA environment"
             }
         }
 
+         stage('DAST - Análisis Dinámico con OWASP ZAP') {
+            steps {
+                sh '''
+                    echo "Ejecutando OWASP ZAP para análisis DAST..."
+                    
+                    # Crear directorio para reportes
+                    mkdir -p zap-reports
+                    
+                    # Descargar ZAP si no está disponible (versión específica compatible con macOS M1)
+                    if [ ! -f zap.jar ]; then
+                        echo "Descargando OWASP ZAP..."
+                        curl -L https://github.com/zaproxy/zaproxy/releases/download/v2.14.0/ZAP_2.14.0_Crossplatform.zip -o zap.zip
+                        unzip -q zap.zip
+                        mv ZAP_2.14.0/* .
+                        chmod +x zap.sh
+                    fi
+                    
+                    # Ejecutar escaneo básico
+                    echo "Iniciando escaneo DAST contra ${URL_WEB}..."
+                    ./zap.sh -cmd -quickurl ${URL_WEB} -quickout zap-reports/zap-report.html || true
+                    
+                    # Generar reporte JSON adicional
+                    ./zap.sh -cmd -last_scan_report zap-reports/zap-report.json -format json || true
+                    
+                    # Mostrar resumen de alertas en el log
+                    echo "============= RESUMEN DE VULNERABILIDADES DAST ============="
+                    if [ -f zap-reports/zap-report.json ]; then
+                        cat zap-reports/zap-report.json | grep -o '"risk":"[^"]*"' | sort | uniq -c || echo "No se encontraron vulnerabilidades"
+                    else
+                        echo "No se generó el reporte JSON"
+                    fi
+                    echo "======================================================"
+                '''
+                archiveArtifacts artifacts: 'zap-reports/zap-report.html,zap-reports/zap-report.json'
+                publishHTML([
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: 'zap-reports',
+                    reportFiles: 'zap-report.html',
+                    reportName: 'OWASP ZAP DAST Report'
+                ])
+            }
+        }
 
-    
-
-
-        // stage('Analisis Estático - SonarCloud (Deuda Técnica)') {
-        //     steps {
-        //         withSonarQubeEnv('sonarcloud') {
-        //             sh '''
-        //                 mvn verify sonar:sonar -DskipTests \
-        //                   -Dsonar.organization=mpuertao \
-        //                   -Dsonar.projectKey=mpuertao_java-reachability-playground \
-        //                   -Dsonar.sources=src \
-        //                   -Dsonar.java.binaries=target/classes
-        //             '''
-        //         }
-        //     }
-        // }
+        stage('Deploy to PDN') {
+            steps {
+                echo "DESPLIEGUE EXITOSO for PDN environment"
+            }
+        }
     }
 
     post {
