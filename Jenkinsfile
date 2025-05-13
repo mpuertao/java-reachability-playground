@@ -161,24 +161,27 @@ pipeline {
 
                         echo "Usando Docker desde: \$DOCKER_PATH"
 
-                        # Ejecuta ZAP con la imagen oficial actual
-                        \$DOCKER_PATH run -d --name zap-scan -p 8090:8090 -e ZAP_PORT=8090 -i ghcr.io/zaproxy/zaproxy:stable zap.sh -daemon -port 8090 -host 0.0.0.0
+                        # Limpiar cualquier contenedor anterior con el mismo nombre
+                        \$DOCKER_PATH rm -f zap-scan 2>/dev/null || true
 
-                        sleep 30  # Dar tiempo a ZAP para iniciar
+                        # Ejecutar ZAP directamente con los parámetros de escaneo
+                        \$DOCKER_PATH run --name zap-scan -v \$(pwd)/zap-reports:/zap/wrk:rw \
+                            -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+                            -t ${targetUrl} \
+                            -r zap-report.html \
+                            -I \
+                            -a \
+                            -d
 
-                        # Verificar que el contenedor esté funcionando
-                        \$DOCKER_PATH ps | grep zap-scan
+                        # Verificar el estado del contenedor después de la ejecución
+                        exitCode=\$(\$DOCKER_PATH inspect zap-scan --format='{{.State.ExitCode}}')
+                        echo "ZAP salió con código: \$exitCode"
 
-                        # Ejecutar escaneo y generar reporte
-                        \$DOCKER_PATH exec zap-scan zap-cli -p 8090 open-url ${targetUrl}
-                        \$DOCKER_PATH exec zap-scan zap-cli -p 8090 spider ${targetUrl}
-                        \$DOCKER_PATH exec zap-scan zap-cli -p 8090 active-scan ${targetUrl}
-                        \$DOCKER_PATH exec zap-scan zap-cli -p 8090 report -o /zap/wrk/zap-report.html -f html
-                        \$DOCKER_PATH cp zap-scan:/zap/wrk/zap-report.html zap-reports/
+                        # Corregir permisos de los archivos generados
+                        chmod -R 777 zap-reports/
 
-                        # Limpiar
-                        \$DOCKER_PATH stop zap-scan
-                        \$DOCKER_PATH rm zap-scan
+                        # Limpiar contenedor
+                        \$DOCKER_PATH rm -f zap-scan
                     """
                     
                     archiveArtifacts artifacts: 'zap-reports/**'
