@@ -167,17 +167,16 @@ pipeline {
                     fi
                 done
 
-                if [ -z "$K6_PATH" ]; then
-                    echo "K6 no encontrado, instalando..."
-                    mkdir -p $HOME/bin
-                    curl -L -o $HOME/bin/k6 https://github.com/grafana/k6/releases/download/v0.43.1/k6-v0.43.1-macos-arm64
-                    chmod +x $HOME/bin/k6
-                    K6_PATH="$HOME/bin/k6"
-                fi
-
                 $K6_PATH version
 
                 $K6_PATH run script.js
+
+                ls -la
+
+                if [ -f "summary.html" ]; then
+                    mkdir -p k6-reports
+                    mv summary.html k6-reports/
+                fi
                 '''
 
                  publishHTML([
