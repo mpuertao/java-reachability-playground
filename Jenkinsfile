@@ -155,6 +155,20 @@ pipeline {
             steps {
                 git branch: 'main', url: 'https://github.com/mpuertao/k6-performance-circleci.git'
                 sh 'mkdir -p k6-reports'
+
+                sh '''
+                if ! command -v k6 &> /dev/null; then
+                    if command -v brew &> /dev/null; then
+                        brew install k6
+                    else
+                        curl -L https://github.com/grafana/k6/releases/download/v0.43.1/k6-v0.43.1-macos-arm64.tar.gz -o k6.tar.gz
+                        tar -xzf k6.tar.gz
+                        sudo mv k6-v0.43.1-macos-arm64/k6 /usr/local/bin/
+                        rm -rf k6-v0.43.1-macos-arm64 k6.tar.gz
+                    fi
+                fi
+                '''
+
                 sh "k6 run script.js"
                  publishHTML([
                     allowMissing: false,
