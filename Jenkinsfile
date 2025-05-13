@@ -15,7 +15,7 @@ pipeline
         maven 'maven 3'
     }
 
-    stages 
+    stages {
         stage('Checkout') {
             steps {
                 git url: "${env.PROJECT_REPO}", branch: 'master'
@@ -141,6 +141,7 @@ pipeline
                 echo "DESPLIEGUE EXITOSO for PDN environment"
             }
         }
+    }
     
     post {
         always {
