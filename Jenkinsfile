@@ -158,15 +158,35 @@ pipeline {
 
                 sh '''
                 if ! command -v k6 &> /dev/null; then
+                    echo "K6 no encontrado, instalando..."
+                    
+                    # Para MacOS, priorizar Homebrew que es más confiable
                     if command -v brew &> /dev/null; then
+                        echo "Instalando k6 mediante Homebrew..."
                         brew install k6
                     else
-                        curl -L https://github.com/grafana/k6/releases/download/v0.43.1/k6-v0.43.1-macos-arm64.tar.gz -o k6.tar.gz
-                        tar -xzf k6.tar.gz
-                        sudo mv k6-v0.43.1-macos-arm64/k6 /usr/local/bin/
-                        rm -rf k6-v0.43.1-macos-arm64 k6.tar.gz
+                        # Si falla la descarga directa, intentar con binario para Mac
+                        echo "Descargando binario k6 para MacOS..."
+                        
+                        # Crear directorio temporal
+                        mkdir -p /tmp/k6-install
+                        cd /tmp/k6-install
+                        
+                        # Descargar binario, no tarball
+                        curl -L -o k6 https://github.com/grafana/k6/releases/download/v0.43.1/k6-v0.43.1-macos-arm64
+                        
+                        # Hacer ejecutable y mover a directorio de binarios
+                        chmod +x k6
+                        sudo mv k6 /usr/local/bin/
+                        
+                        # Limpiar
+                        cd -
+                        rm -rf /tmp/k6-install
                     fi
                 fi
+                
+                # Verificar instalación
+                k6 version || echo "Error: k6 no se instaló correctamente"
                 '''
 
                 sh "k6 run script.js"
