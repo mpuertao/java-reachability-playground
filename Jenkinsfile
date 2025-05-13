@@ -142,10 +142,6 @@ pipeline {
 
                     zapActiveScan(
                         target: targetUrl,
-                        # ajaxSpider: true, // Optional: Enable AJAX Spider for more comprehensive coverage
-                        # spiderMaxChildren: 5, // Optional: Limit the number of children the spider explores
-                        # policyName: 'OWASP Top 10 2021', // Optional: Specify a ZAP policy
-                        # scanPolicy: 'Default Policy', // Alternative to policyName
                         alertThreshold: 'HIG', // Optional: Fail build on MEDIUM or higher risk alerts
                         reportFormat: 'HTML', // Optional: Specify the report format (HTML, XML, etc.)
                         reportFile: 'zap_report.html' // Optional: Specify the report file name
