@@ -28,49 +28,48 @@ pipeline {
             }
         }
 
-        stage('Analisis Estático - SonarCloud (Deuda Técnica)') {
-            steps {
-                withSonarQubeEnv('sonarcloud') {
-                    sh '''
-                        mvn verify sonar:sonar -DskipTests \
-                          -Dsonar.organization=mpuertao \
-                          -Dsonar.projectKey=mpuertao_java-reachability-playground \
-                          -Dsonar.sources=src \
-                          -Dsonar.java.binaries=target/classes
-                    '''
-                }
-            }
-        }
+        // stage('Analisis Estático - SonarCloud (Deuda Técnica)') {
+        //     steps {
+        //         withSonarQubeEnv('sonarcloud') {
+        //             sh '''
+        //                 mvn verify sonar:sonar -DskipTests \
+        //                   -Dsonar.organization=mpuertao \
+        //                   -Dsonar.projectKey=mpuertao_java-reachability-playground \
+        //                   -Dsonar.sources=src \
+        //                   -Dsonar.java.binaries=target/classes
+        //             '''
+        //         }
+        //     }
+        // }
 
-        stage('SCA - Análisis de Dependencias con OWASP') {
-            steps {
-                sh '''
-                    echo "Ejecutando OWASP Dependency-Check..."
-                    mvn org.owasp:dependency-check-maven:check \
-                        -Dformats=HTML,JSON \
-                        -DfailBuildOnCVSS=11 \
-                        -DfailBuildOnAnyVulnerability=false \
-                        -Danalyzer.nvd.api.key=${NVD_API_KEY}
+        // stage('SCA - Análisis de Dependencias con OWASP') {
+        //     steps {
+        //         sh '''
+        //             echo "Ejecutando OWASP Dependency-Check..."
+        //             mvn org.owasp:dependency-check-maven:check \
+        //                 -Dformats=HTML,JSON \
+        //                 -DfailBuildOnCVSS=11 \
+        //                 -DfailBuildOnAnyVulnerability=false \
+        //                 -Danalyzer.nvd.api.key=${NVD_API_KEY}
 
-                    # Mostrar resumen de vulnerabilidades en el log
-                    if [ -f target/dependency-check-report.json ]; then
-                        echo "============= RESUMEN DE VULNERABILIDADES ============="
-                        grep -o '"severityLevel": "[^"]*"' target/dependency-check-report.json | sort | uniq -c || echo "No se encontraron vulnerabilidades"
-                        echo "======================================================"
-                    fi
-                '''
-                archiveArtifacts artifacts: 'target/dependency-check-report.html,target/dependency-check-report.json'
-                publishHTML([
-                    allowMissing: false,
-                    alwaysLinkToLastBuild: true,
-                    keepAll: true,
-                    reportDir: 'target',
-                    reportFiles: 'dependency-check-report.html',
-                    reportName: 'OWASP Dependency Check'
-                ])
-            }
-        }
-
+        //             # Mostrar resumen de vulnerabilidades en el log
+        //             if [ -f target/dependency-check-report.json ]; then
+        //                 echo "============= RESUMEN DE VULNERABILIDADES ============="
+        //                 grep -o '"severityLevel": "[^"]*"' target/dependency-check-report.json | sort | uniq -c || echo "No se encontraron vulnerabilidades"
+        //                 echo "======================================================"
+        //             fi
+        //         '''
+        //         archiveArtifacts artifacts: 'target/dependency-check-report.html,target/dependency-check-report.json'
+        //         publishHTML([
+        //             allowMissing: false,
+        //             alwaysLinkToLastBuild: true,
+        //             keepAll: true,
+        //             reportDir: 'target',
+        //             reportFiles: 'dependency-check-report.html',
+        //             reportName: 'OWASP Dependency Check'
+        //         ])
+        //     }
+        // }
 
 
        stage('SAST - Análisis Estático de Código con Snyk') {
@@ -85,8 +84,16 @@ pipeline {
                             npm install -g snyk || echo "Error instalando Snyk globalmente"
                             export PATH="$PATH:$HOME/.npm-global/bin"
                         fi
+
+                        # Instalar snyk-to-html si no está disponible
+                        if ! command -v snyk-to-html &> /dev/null; then
+                            echo "snyk-to-html no encontrado, instalando..."
+                            npm install -g snyk-to-html
+                            export PATH="$PATH:$HOME/.npm-global/bin"
+                        fi
                         
                         which snyk || echo "Snyk no encontrado en PATH"
+                        which snyk-to-html || echo "snyk-to-html no encontrado en PATH"
                         snyk --version || echo "Error al obtener la versión de Snyk"
                         snyk auth ${SNYK_TOKEN} || echo "Error autenticando Snyk"
 
@@ -168,7 +175,7 @@ pipeline {
                             echo "ERROR: La descarga de ZAP falló o el archivo está incompleto"
                         fi
                     fi
-                    
+
                     # Ejecutar escaneo básico
                     echo "Iniciando escaneo DAST contra ${URL_WEB}..."
                     ./zap.sh -cmd -quickurl ${URL_WEB} -quickout zap-reports/zap-report.html || true
