@@ -135,6 +135,32 @@ pipeline {
             }
         }
 
+        stage('DAST - OWASP ZAP') {
+            steps {
+                script {
+                    def targetUrl = 'https://demo.bankid.com/'
+
+                    zapActiveScan(
+                        target: targetUrl,
+                        # ajaxSpider: true, // Optional: Enable AJAX Spider for more comprehensive coverage
+                        # spiderMaxChildren: 5, // Optional: Limit the number of children the spider explores
+                        # policyName: 'OWASP Top 10 2021', // Optional: Specify a ZAP policy
+                        # scanPolicy: 'Default Policy', // Alternative to policyName
+                        alertThreshold: 'HIG', // Optional: Fail build on MEDIUM or higher risk alerts
+                        reportFormat: 'HTML', // Optional: Specify the report format (HTML, XML, etc.)
+                        reportFile: 'zap_report.html' // Optional: Specify the report file name
+                    )
+
+                    // Optional: Passive Scan (usually runs continuously in the background)
+                    // You might want to explicitly trigger a report generation
+                    zapPassiveScanReport(
+                        reportFormat: 'HTML',
+                        reportFile: 'zap_passive_report.html'
+                    )
+                }
+            }
+        }
+
         stage('Deploy to PDN') {
             steps {
                 echo "DESPLIEGUE EXITOSO for PDN environment"
