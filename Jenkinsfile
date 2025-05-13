@@ -169,19 +169,15 @@ pipeline {
                         echo "Descargando binario k6 para MacOS..."
                         
                         # Crear directorio temporal
-                        mkdir -p /tmp/k6-install
-                        cd /tmp/k6-install
-                        
-                        # Descargar binario, no tarball
-                        curl -L -o k6 https://github.com/grafana/k6/releases/download/v0.43.1/k6-v0.43.1-macos-arm64
-                        
+                        mkdir -p $HOME/bin
+                        curl -L -o $HOME/bin/k6 https://github.com/grafana/k6/releases/download/v0.43.1/k6-v0.43.1-macos-arm64
+
                         # Hacer ejecutable y mover a directorio de binarios
-                        chmod +x k6
+                        chmod +x $HOME/bin/k6
                         sudo mv k6 /usr/local/bin/
                         
-                        # Limpiar
-                        cd -
-                        rm -rf /tmp/k6-install
+                        export PATH="$PATH:$HOME/bin"
+                        echo "PATH actualizado: $PATH"
                     fi
                 fi
                 
