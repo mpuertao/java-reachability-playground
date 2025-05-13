@@ -151,6 +151,22 @@ pipeline {
             }
         }
 
+        stage('PRUEBAS DE PERFORMANCE - K6') {
+            steps {
+                git branch: 'main', url: 'https://github.com/mpuertao/k6-performance-circleci.git'
+                sh 'mkdir -p k6-reports'
+                sh "k6 run script.js"
+                 publishHTML([
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: 'k6-reports',
+                    reportFiles: 'summary.html',
+                    reportName: 'Reporte de Rendimiento K6'
+                ])
+            }
+        }
+
         // stage('DAST - OWASP ZAP') {
         //     steps {
         //         script {
