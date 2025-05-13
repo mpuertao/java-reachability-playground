@@ -157,18 +157,27 @@ pipeline {
                 sh 'mkdir -p k6-reports'
 
                 sh '''
-                if ! command -v k6 &> /dev/null; then
-                    if command -v brew &> /dev/null; then
-                        brew install k6
-                    else
-                        mkdir -p $HOME/bin
-                        curl -L -o $HOME/bin/k6 https://github.com/grafana/k6/releases/download/v0.43.1/k6-v0.43.1-macos-arm64
-                        chmod +x $HOME/bin/k6                        
-                        export PATH="$PATH:$HOME/bin"
-                        echo "PATH actualizado: $PATH"
+                K6_PATH=""
+                for path in /opt/homebrew/bin/k6 /usr/local/bin/k6 $HOME/bin/k6 /usr/bin/k6
+                do
+                    if [ -f "$path" ]; then
+                        K6_PATH="$path"
+                        echo "K6 encontrado en: $K6_PATH"
+                        break
                     fi
+                done
+
+                if [ -z "$K6_PATH" ]; then
+                    echo "K6 no encontrado, instalando..."
+                    mkdir -p $HOME/bin
+                    curl -L -o $HOME/bin/k6 https://github.com/grafana/k6/releases/download/v0.43.1/k6-v0.43.1-macos-arm64
+                    chmod +x $HOME/bin/k6
+                    K6_PATH="$HOME/bin/k6"
                 fi
-                k6 version || echo "Error: k6 no se instaló correctamente"
+
+                $K6_PATH version
+
+                $K6_PATH run script.js
                 '''
 
                 sh "k6 run script.js"
