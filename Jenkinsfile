@@ -27,94 +27,94 @@ pipeline {
             }
         }
 
-    //     stage('Analisis Estático - SonarCloud (Deuda Técnica)') {
-    //         steps {
-    //             withSonarQubeEnv('sonarcloud') {
-    //                 sh '''
-    //                     mvn verify sonar:sonar -DskipTests \
-    //                       -Dsonar.organization=mpuertao \
-    //                       -Dsonar.projectKey=mpuertao_java-reachability-playground \
-    //                       -Dsonar.sources=src \
-    //                       -Dsonar.java.binaries=target/classes
-    //                 '''
-    //             }
-    //         }
-    //     }
+        stage('Analisis Estático - SonarCloud (Deuda Técnica)') {
+            steps {
+                withSonarQubeEnv('sonarcloud') {
+                    sh '''
+                        mvn verify sonar:sonar -DskipTests \
+                          -Dsonar.organization=mpuertao \
+                          -Dsonar.projectKey=mpuertao_java-reachability-playground \
+                          -Dsonar.sources=src \
+                          -Dsonar.java.binaries=target/classes
+                    '''
+                }
+            }
+        }
 
-    //     stage('SCA - Análisis de Dependencias con OWASP') {
-    //         steps {
-    //             sh '''
-    //                 echo "Ejecutando OWASP Dependency-Check..."
-    //                 mvn org.owasp:dependency-check-maven:check \
-    //                     -Dformats=HTML,JSON \
-    //                     -DfailBuildOnCVSS=11 \
-    //                     -DfailBuildOnAnyVulnerability=false \
-    //                     -Danalyzer.nvd.api.key=${NVD_API_KEY}
+        stage('SCA - Análisis de Dependencias con OWASP') {
+            steps {
+                sh '''
+                    echo "Ejecutando OWASP Dependency-Check..."
+                    mvn org.owasp:dependency-check-maven:check \
+                        -Dformats=HTML,JSON \
+                        -DfailBuildOnCVSS=11 \
+                        -DfailBuildOnAnyVulnerability=false \
+                        -Danalyzer.nvd.api.key=${NVD_API_KEY}
 
-    //                 # Mostrar resumen de vulnerabilidades en el log
-    //                 if [ -f target/dependency-check-report.json ]; then
-    //                     echo "============= RESUMEN DE VULNERABILIDADES ============="
-    //                     grep -o '"severityLevel": "[^"]*"' target/dependency-check-report.json | sort | uniq -c || echo "No se encontraron vulnerabilidades"
-    //                     echo "======================================================"
-    //                 fi
-    //             '''
-    //             archiveArtifacts artifacts: 'target/dependency-check-report.html,target/dependency-check-report.json'
-    //             publishHTML([
-    //                 allowMissing: false,
-    //                 alwaysLinkToLastBuild: true,
-    //                 keepAll: true,
-    //                 reportDir: 'target',
-    //                 reportFiles: 'dependency-check-report.html',
-    //                 reportName: 'OWASP Dependency Check'
-    //             ])
-    //         }
-    //     }
+                    # Mostrar resumen de vulnerabilidades en el log
+                    if [ -f target/dependency-check-report.json ]; then
+                        echo "============= RESUMEN DE VULNERABILIDADES ============="
+                        grep -o '"severityLevel": "[^"]*"' target/dependency-check-report.json | sort | uniq -c || echo "No se encontraron vulnerabilidades"
+                        echo "======================================================"
+                    fi
+                '''
+                archiveArtifacts artifacts: 'target/dependency-check-report.html,target/dependency-check-report.json'
+                publishHTML([
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: 'target',
+                    reportFiles: 'dependency-check-report.html',
+                    reportName: 'OWASP Dependency Check'
+                ])
+            }
+        }
 
 
-    //    stage('SAST - Análisis Estático de Código con Snyk') {
-    //         steps {
-    //              sh '''
-    //                     echo "Configurando entorno..."
-    //                     export PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:$HOME/.npm-global/bin:$HOME/.nvm/versions/node/$(node -v)/bin:$HOME/.local/bin"
-    //                     echo "PATH configurado: $PATH"
+       stage('SAST - Análisis Estático de Código con Snyk') {
+            steps {
+                 sh '''
+                        echo "Configurando entorno..."
+                        export PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:$HOME/.npm-global/bin:$HOME/.nvm/versions/node/$(node -v)/bin:$HOME/.local/bin"
+                        echo "PATH configurado: $PATH"
                         
-    //                     if ! command -v snyk &> /dev/null; then
-    //                         echo "Snyk no encontrado, instalando..."
-    //                         npm install -g snyk || echo "Error instalando Snyk globalmente"
-    //                         export PATH="$PATH:$HOME/.npm-global/bin"
-    //                     fi
+                        if ! command -v snyk &> /dev/null; then
+                            echo "Snyk no encontrado, instalando..."
+                            npm install -g snyk || echo "Error instalando Snyk globalmente"
+                            export PATH="$PATH:$HOME/.npm-global/bin"
+                        fi
 
-    //                     # Instalar snyk-to-html si no está disponible
-    //                     if ! command -v snyk-to-html &> /dev/null; then
-    //                         echo "snyk-to-html no encontrado, instalando..."
-    //                         npm install -g snyk-to-html
-    //                         export PATH="$PATH:$HOME/.npm-global/bin"
-    //                     fi
+                        # Instalar snyk-to-html si no está disponible
+                        if ! command -v snyk-to-html &> /dev/null; then
+                            echo "snyk-to-html no encontrado, instalando..."
+                            npm install -g snyk-to-html
+                            export PATH="$PATH:$HOME/.npm-global/bin"
+                        fi
                         
-    //                     which snyk || echo "Snyk no encontrado en PATH"
-    //                     which snyk-to-html || echo "snyk-to-html no encontrado en PATH"
-    //                     snyk --version || echo "Error al obtener la versión de Snyk"
-    //                     snyk auth ${SNYK_TOKEN} || echo "Error autenticando Snyk"
+                        which snyk || echo "Snyk no encontrado en PATH"
+                        which snyk-to-html || echo "snyk-to-html no encontrado en PATH"
+                        snyk --version || echo "Error al obtener la versión de Snyk"
+                        snyk auth ${SNYK_TOKEN} || echo "Error autenticando Snyk"
 
-    //                     mkdir -p snyk-reports
+                        mkdir -p snyk-reports
 
-    //                     snyk code test --json > snyk-reports/snyk-sast-report.json || true
-    //                     snyk code test --sarif > snyk-reports/snyk-code-report.sarif || true
+                        snyk code test --json > snyk-reports/snyk-sast-report.json || true
+                        snyk code test --sarif > snyk-reports/snyk-code-report.sarif || true
 
-    //                     cat snyk-reports/snyk-sast-report.json | snyk-to-html -o snyk-reports/snyk-sast-report.html || echo "No se pudo generar el reporte HTML"
+                        cat snyk-reports/snyk-sast-report.json | snyk-to-html -o snyk-reports/snyk-sast-report.html || echo "No se pudo generar el reporte HTML"
 
-    //                     echo "============= RESUMEN DE VULNERABILIDADES SAST ============="
-    //                     if [ -f snyk-reports/snyk-sast-report.json ]; then
-    //                         cat snyk-reports/snyk-sast-report.json | grep -o '"severity": "[^"]*"' | sort | uniq -c || echo "No se encontraron vulnerabilidades"
-    //                     else
-    //                         echo "No se generó el reporte JSON"
-    //                     fi
+                        echo "============= RESUMEN DE VULNERABILIDADES SAST ============="
+                        if [ -f snyk-reports/snyk-sast-report.json ]; then
+                            cat snyk-reports/snyk-sast-report.json | grep -o '"severity": "[^"]*"' | sort | uniq -c || echo "No se encontraron vulnerabilidades"
+                        else
+                            echo "No se generó el reporte JSON"
+                        fi
 
-    //                     snyk monitor || echo "No se pudo enviar los resultados a Snyk Monitor"
-    //                 '''
-    //             archiveArtifacts artifacts: 'snyk-sast-report.json'
-    //         }
-    //     }
+                        snyk monitor || echo "No se pudo enviar los resultados a Snyk Monitor"
+                    '''
+                archiveArtifacts artifacts: 'snyk-sast-report.json'
+            }
+        }
 
         stage('Package Artifact') {
             steps {
@@ -190,76 +190,50 @@ pipeline {
             }
         }
 
-        // stage('DAST - OWASP ZAP') {
-        //     steps {
-        //         script {
-        
+        stage('DAST - OWASP ZAP') {
+            steps {
+                script {
+                    def targetUrl = "${URL_WEB}"
+                    sh """
+                        mkdir -p zap-reports
+
+                        DOCKER_PATH=/Applications/Docker.app/Contents/Resources/bin/docker
+
+                        if [ ! -f "\$DOCKER_PATH" ]; then
+                            DOCKER_PATH=/opt/homebrew/bin/docker
+                        fi
+                        if [ ! -f "\$DOCKER_PATH" ]; then
+                            DOCKER_PATH=/usr/local/bin/docker
+                        fi
+                        \$DOCKER_PATH rm -f zap-scan 2>/dev/null || true
+
+                        \$DOCKER_PATH run --name zap-scan -v \$(pwd)/zap-reports:/zap/wrk:rw \
+                            -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
+                            -t ${targetUrl} \
+                            -r zap-report.html \
+                            -I \
+                            -a \
+                            -d
+
+                        exitCode=\$(\$DOCKER_PATH inspect zap-scan --format='{{.State.ExitCode}}')
+                        echo "ZAP salió con código: \$exitCode"
+                        chmod -R 777 zap-reports/
+                        \$DOCKER_PATH rm -f zap-scan
+                    """
                     
-        //             def targetUrl = "${URL_WEB}"
+                    archiveArtifacts artifacts: 'zap-reports/**'
+                    publishHTML([
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'zap-reports',
+                        reportFiles: 'zap-report.html',
+                        reportName: 'OWASP ZAP Report'
                     
-        //             sh """
-        //                 # Asegúrate de que exista el directorio para los reportes
-        //                 mkdir -p zap-reports
-
-        //                 # Ruta completa a Docker en Mac
-        //                 DOCKER_PATH=/Applications/Docker.app/Contents/Resources/bin/docker
-
-        //                 # Si no existe en esta ruta, intenta con Homebrew
-        //                 if [ ! -f "\$DOCKER_PATH" ]; then
-        //                     DOCKER_PATH=/opt/homebrew/bin/docker
-        //                 fi
-
-        //                 # Si aún no existe, intenta con la ruta estándar
-        //                 if [ ! -f "\$DOCKER_PATH" ]; then
-        //                     DOCKER_PATH=/usr/local/bin/docker
-        //                 fi
-
-        //                 echo "Usando Docker desde: \$DOCKER_PATH"
-
-        //                 # Limpiar cualquier contenedor anterior con el mismo nombre
-        //                 \$DOCKER_PATH rm -f zap-scan 2>/dev/null || true
-
-        //                 # Ejecutar ZAP directamente con los parámetros de escaneo
-        //                 \$DOCKER_PATH run --name zap-scan -v \$(pwd)/zap-reports:/zap/wrk:rw \
-        //                     -t ghcr.io/zaproxy/zaproxy:stable zap-baseline.py \
-        //                     -t ${targetUrl} \
-        //                     -r zap-report.html \
-        //                     -I \
-        //                     -a \
-        //                     -d
-
-        //                 # Verificar el estado del contenedor después de la ejecución
-        //                 exitCode=\$(\$DOCKER_PATH inspect zap-scan --format='{{.State.ExitCode}}')
-        //                 echo "ZAP salió con código: \$exitCode"
-
-        //                 # Corregir permisos de los archivos generados
-        //                 chmod -R 777 zap-reports/
-
-        //                 # Limpiar contenedor
-        //                 \$DOCKER_PATH rm -f zap-scan
-        //             """
-                    
-        //             archiveArtifacts artifacts: 'zap-reports/**'
-        //             publishHTML([
-                    
-        //                 allowMissing: false,
-                    
-        //                 alwaysLinkToLastBuild: true,
-                    
-        //                 keepAll: true,
-                    
-        //                 reportDir: 'zap-reports',
-                    
-        //                 reportFiles: 'zap-report.html',
-                    
-        //                 reportName: 'OWASP ZAP Report'
-                    
-        //             ])
-        //         }       
-
-        //     }       
-
-        // }
+                    ])
+                }       
+            }       
+        }
 
         stage('Deploy to PDN') {
             steps {
