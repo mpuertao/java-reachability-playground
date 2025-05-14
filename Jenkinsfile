@@ -47,8 +47,8 @@ pipeline {
                     echo "Ejecutando OWASP Dependency-Check..."
                     mvn org.owasp:dependency-check-maven:check \
                         -Dformats=HTML,JSON \
-                        -DfailBuildOnCVSS=11 \
-                        -DfailBuildOnAnyVulnerability=false \
+                        -DfailBuildOnCVSS=8 \
+                        -DfailBuildOnAnyVulnerability=true \
                         -Danalyzer.nvd.api.key=${NVD_API_KEY}
 
                     # Mostrar resumen de vulnerabilidades en el log
