@@ -47,7 +47,7 @@ pipeline {
                     echo "Ejecutando OWASP Dependency-Check..."
                     mvn org.owasp:dependency-check-maven:check \
                         -Dformats=HTML,JSON \
-                        -DfailBuildOnCVSS=8 \
+                        -DfailBuildOnCVSS=6 \
                         -DfailBuildOnAnyVulnerability=true \
                         -Danalyzer.nvd.api.key=${NVD_API_KEY}
 
