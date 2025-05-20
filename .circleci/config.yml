@@ -33,7 +33,7 @@ jobs:
       - run:
           name: Create sonar-project.properties
           command: |
-            cat > sonar-project.properties << EOF
+            cat > sonar-project.properties \<< EOF
             sonar.projectKey=${SONAR_PROJECT_KEY}
             sonar.organization=${SONAR_ORGANIZATION}
             
