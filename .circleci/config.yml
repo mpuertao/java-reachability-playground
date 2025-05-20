@@ -54,8 +54,7 @@ jobs:
             sonar.sourceEncoding=UTF-8
             EOF
       - sonarcloud/scan:
-          cache_version: 1
-          java_opts: '-Xmx3200m'     
+          cache_version: 1     
 
   snyk-scan-sast:
     docker:
