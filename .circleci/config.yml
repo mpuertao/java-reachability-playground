@@ -30,23 +30,7 @@ jobs:
       - attach_workspace:
           at: .
       - sonarcloud/scan:
-          cache_version: 1
-
-  owasp_dependency_check:
-    docker:
-      - image: owasp/dependency-check:latest
-    steps:
-      - checkout
-      - run:
-          name: Run OWASP Dependency-Check
-          command: >
-            dependency-check.sh --project "${CIRCLE_PROJECT_REPONAME}"
-            --scan /home/circleci/project
-            --format HTML
-            --out /home/circleci/project/odc-report
-      - store_artifacts:
-          path: odc-report
-          destination: dependency-check-report        
+          cache_version: 1      
 
   snyk-scan-sast:
     docker:
@@ -135,9 +119,6 @@ workflows:
           context: SonarCloud
           requires:
             - checkout_code
-      - owasp_dependency_check:
-          requires:
-            - checkout_code
       - snyk-scan-sast:
           context: Snyk
           requires:
@@ -146,7 +127,6 @@ workflows:
           type: approval
           requires:
             - sonarcloud-scan
-            - owasp_dependency_check
             - snyk-scan-sast
       - publish-artifact:
           requires:
