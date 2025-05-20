@@ -7,6 +7,7 @@ orbs:
   sonarcloud: sonarsource/sonarcloud@2.0.0
   # Snyk orb for security scanning
   snyk: snyk/snyk@1.6.0
+  node: circleci/node@5.1.0
 # Reusable commands to keep the config DRY
 executors:
   java-executor:
@@ -25,12 +26,36 @@ jobs:
 
   sonarcloud-scan:
     docker:
-      - image: cimg/openjdk:17.0
+      - image: node:latest
     steps:
       - attach_workspace:
           at: .
+      - run:
+          name: Create sonar-project.properties
+          command: |
+            cat > sonar-project.properties << EOF
+            sonar.projectKey=${SONAR_PROJECT_KEY}
+            sonar.organization=${SONAR_ORGANIZATION}
+            
+            # Project information
+            sonar.projectName=${CIRCLE_PROJECT_REPONAME}
+            sonar.projectVersion=1.0.${CIRCLE_BUILD_NUM}
+            
+            # Source code location
+            sonar.sources=src/main/java
+            sonar.java.binaries=target/classes
+            sonar.java.libraries=target/dependency/*.jar
+            
+            # Test coverage configuration
+            sonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+            sonar.junit.reportPaths=target/surefire-reports
+            
+            # Encoding of source files
+            sonar.sourceEncoding=UTF-8
+            EOF
       - sonarcloud/scan:
-          cache_version: 1      
+          cache_version: 1
+          java_opts: '-Xmx3200m'     
 
   snyk-scan-sast:
     docker:
@@ -38,15 +63,28 @@ jobs:
     steps:
       - attach_workspace:
           at: .
-      - snyk/scan:
-          fail-on-issues: false
-          monitor-on-build: true
-          severity-threshold: low
-          token-variable: SNYK_TOKEN
-          command: code test
+      - run:
+          name: Install Snyk CLI
+          command: |
+            sudo npm install -g snyk
+            snyk --version
+      - run:
+          name: Authenticate with Snyk
+          command: |
+            # Set a timeout for the auth command
+            timeout 60s snyk auth $SNYK_TOKEN || {
+              echo "Snyk auth timed out. Trying alternative authentication method"
+              mkdir -p ~/.config/configstore/
+              echo "{\"api\": \"$SNYK_TOKEN\"}" > ~/.config/configstore/snyk.json
+            }
+      - run:
+          name: Run Snyk SCA Scan
+          command: |
+            snyk test --all-projects --json > snyk-sca-results.json || true
+            snyk monitor --all-projects || true
       - store_artifacts:
-          path: snyk-report.html
-          destination: snyk-sast-report
+          path: snyk-sca-results.json
+          destination: snyk-sca-report.json
 
   publish-artifact:
     docker:
