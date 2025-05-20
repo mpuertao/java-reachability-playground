@@ -146,7 +146,7 @@ workflows:
           type: approval
           requires:
             - sonarcloud-scan
-            - snyk-scan-sca
+            - owasp_dependency_check
             - snyk-scan-sast
       - publish-artifact:
           requires:
