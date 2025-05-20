@@ -40,7 +40,7 @@ jobs:
       - run:
           name: Run OWASP Dependency-Check
           command: >
-            dependency-check.sh --project "demo-java-project"
+            dependency-check.sh --project "${CIRCLE_PROJECT_REPONAME}"
             --scan /home/circleci/project
             --format HTML
             --out /home/circleci/project/odc-report
@@ -135,8 +135,7 @@ workflows:
           context: SonarCloud
           requires:
             - checkout_code
-      - snyk-scan-sca:
-          context: Snyk
+      - owasp_dependency_check:
           requires:
             - checkout_code
       - snyk-scan-sast:
