@@ -1,0 +1,170 @@
+version: 2.1
+
+orbs:
+  # Maven orb for build tasks
+  maven: circleci/maven@1.4.1
+  # SonarCloud orb for code quality analysis
+  sonarcloud: sonarsource/sonarcloud@2.0.0
+  # Snyk orb for security scanning
+  snyk: snyk/snyk@1.6.0
+# Reusable commands to keep the config DRY
+executors:
+  java-executor:
+    docker:
+      - image: cimg/openjdk:17.0
+    working_directory: ~/repo
+
+jobs:
+  checkout_code:
+    executor: java-executor
+    steps:
+      - checkout
+      - run:
+          name: Print Git Commit
+          command: git log -1
+
+  sonarcloud-scan:
+    docker:
+      - image: cimg/openjdk:17.0
+    steps:
+      - attach_workspace:
+          at: .
+      - sonarcloud/scan:
+          cache_version: 1
+
+  owasp_dependency_check:
+    docker:
+      - image: owasp/dependency-check:latest
+    steps:
+      - checkout
+      - run:
+          name: Run OWASP Dependency-Check
+          command: >
+            dependency-check.sh --project "demo-java-project"
+            --scan /home/circleci/project
+            --format HTML
+            --out /home/circleci/project/odc-report
+      - store_artifacts:
+          path: odc-report
+          destination: dependency-check-report        
+
+  snyk-scan-sast:
+    docker:
+      - image: cimg/openjdk:17.0
+    steps:
+      - attach_workspace:
+          at: .
+      - snyk/scan:
+          fail-on-issues: false
+          monitor-on-build: true
+          severity-threshold: low
+          token-variable: SNYK_TOKEN
+          command: code test
+      - store_artifacts:
+          path: snyk-report.html
+          destination: snyk-sast-report
+
+  publish-artifact:
+    docker:
+      - image: cimg/openjdk:17.0
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: Deploy to Maven Repository
+          command: |
+            if [[ "${CIRCLE_BRANCH}" == "main" || "${CIRCLE_BRANCH}" == "master" ]]; then
+              mvn deploy -DskipTests
+            else
+              echo "Not deploying as this is not the main branch"
+            fi
+
+  deploy_dev:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - run:
+          name: Simulate DEV Deploy
+          command: echo "Deploy en DEV exitoso"
+
+  deploy_qa:
+    docker:
+      - image: cimg/base:stable
+    steps:
+      - run:
+          name: Simulate QA Deploy
+          command: echo "Deploy en QA exitoso"
+
+  integration_tests:
+    executor: java-executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Run Integration Tests
+          command: mvn clean -DskipTests verify
+
+  performance_tests:
+    docker:
+      - image: grafana/k6:latest
+    steps:
+      - checkout
+      - run:
+          name: Run K6 Performance Test
+          command: k6 run k6_script.js   
+
+  zap_scan:
+    docker:
+      - image: zaproxy/zap-stable
+    steps:
+      - run:
+          name: OWASP ZAP Scan
+          command: >
+            zap-baseline.py -t https://demobankid.com -g gen.conf -r zap_report.html
+      - store_artifacts:
+          path: zap_report.html
+          destination: owasp-zap                              
+
+workflows:
+  version: 2
+  main-workflow:
+    jobs:
+      - checkout_code
+      - sonarcloud-scan:
+          context: SonarCloud
+          requires:
+            - checkout_code
+      - snyk-scan-sca:
+          context: Snyk
+          requires:
+            - checkout_code
+      - snyk-scan-sast:
+          context: Snyk
+          requires:
+            - checkout_code
+      - approve-deployment:
+          type: approval
+          requires:
+            - sonarcloud-scan
+            - snyk-scan-sca
+            - snyk-scan-sast
+      - publish-artifact:
+          requires:
+            - approve-deployment
+      - deploy_dev:          
+          requires:
+            - publish-artifact
+      - deploy_qa:
+          requires:
+            - deploy_dev
+      - integration_tests:
+          requires:
+            - deploy_qa
+      - performance_tests:
+          requires:
+            - deploy_qa
+      - zap_scan:
+          requires:
+            - deploy_qa      
+      
